@@ -157,6 +157,6 @@ function initialize(rows){
   updateRange();window.addEventListener('resize',()=>{draw(state.start,state.end);updateMigrationPanel();updateDepletionPanel()});
 }
 if(Array.isArray(window.URPD_DATA))initialize(window.URPD_DATA);
-else fetch('data/utxo.json').then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()}).then(initialize).catch(error=>{
+else fetch('utxo.json').then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()}).then(initialize).catch(error=>{
   $('#migrationWarning').hidden=false;$('#migrationWarning').textContent=`URPD data failed to load: ${error.message}`;
 });

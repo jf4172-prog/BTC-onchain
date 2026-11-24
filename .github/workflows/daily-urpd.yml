@@ -1,0 +1,116 @@
+name: Daily URPD update and deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch and merge URPD history
+        env:
+          GLASSNODE_API_KEY: ${{ secrets.GLASSNODE_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+          from pathlib import Path
+
+          endpoint = "https://api.glassnode.com/v1/metrics/indicators/utxo_realized_price_distribution_ath"
+          api_key = os.environ.get("GLASSNODE_API_KEY", "").strip()
+          if not api_key:
+              raise RuntimeError("GLASSNODE_API_KEY secret is not configured")
+
+          query = urllib.parse.urlencode({
+              "a": "BTC",
+              "c": "native",
+              "i": "24h",
+              "api_key": api_key,
+          })
+          request = urllib.request.Request(
+              f"{endpoint}?{query}",
+              headers={"User-Agent": "btc-onchain-urpd-archive/1.0"},
+          )
+          with urllib.request.urlopen(request, timeout=60) as response:
+              latest = json.load(response)
+
+          if not isinstance(latest, list) or not latest:
+              raise RuntimeError("Glassnode returned no URPD records")
+
+          cleaned = []
+          for row in latest:
+              partitions = row.get("partitions")
+              if not isinstance(partitions, list) or len(partitions) != 100:
+                  raise RuntimeError(f"Unexpected partition count at {row.get('t')}")
+              item = dict(row)
+              item["partitions"] = partitions[1:]
+              cleaned.append(item)
+
+          json_path = Path("utxo.json")
+          js_path = Path("utxo.js")
+          existing = json.loads(json_path.read_text(encoding="utf-8")) if json_path.exists() else []
+          merged = {int(row["t"]): row for row in existing}
+          before = len(merged)
+          for row in cleaned:
+              merged[int(row["t"])] = row
+          rows = [merged[timestamp] for timestamp in sorted(merged)]
+
+          compact = json.dumps(rows, ensure_ascii=False, separators=(",", ":"))
+          json_path.write_text(compact + "\n", encoding="utf-8")
+          js_path.write_text("window.URPD_DATA=" + compact + ";\n", encoding="utf-8")
+          print(json.dumps({
+              "records_before": before,
+              "records_after": len(rows),
+              "latest_timestamp": rows[-1]["t"],
+          }))
+          PY
+
+      - name: Commit updated data
+        run: |
+          if git diff --quiet -- utxo.json utxo.js; then
+            echo "No data changes to commit"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add utxo.json utxo.js
+            git commit -m "Update daily URPD data"
+            git push
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: .
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

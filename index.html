@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bitcoin URPD</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>BTC: UTXO Realized Price Distribution (URPD): ATH-Partitioned</h1>
+      <div class="range-picker">
+        <label>From<input id="startDate" type="date" aria-label="起始日期"></label>
+        <span>—</span>
+        <label>To<input id="endDate" type="date" aria-label="结束日期"></label>
+      </div>
+    </header>
+    <div id="selectionSummary" hidden aria-live="polite">
+      <span><small>Price range</small><b id="selectedPrice">—</b></span>
+      <span><small>Supply</small><b id="selectedSupply">—</b></span>
+      <span><small>Net change</small><b id="selectedChange">—</b></span>
+    </div>
+    <div id="chartWrap">
+      <svg id="chart" role="img" aria-label="Bitcoin UTXO realized price distribution"></svg>
+      <div id="tooltip"></div>
+    </div>
+    <section id="migrationSection" aria-labelledby="migrationTitle">
+      <div class="migration-heading">
+        <h2 id="migrationTitle">筹码净迁移率 <span>| Net Cost Basis Migration</span></h2>
+        <button class="info-button" type="button" aria-label="指标说明">i<span class="info-popover">筹码净迁移率衡量所选时间段内，BTC 在不同成本区间之间的可观察净迁移程度。计算方式为逐日比较 URPD 筹码分布，将每日净迁移量累加后除以期末 BTC 供应量。该指标反映成本分布的重组强度，不等同于实际链上换手率。</span></button>
+      </div>
+      <div class="migration-periods">
+        <div class="migration-period">
+          <h3>所选时间区间</h3>
+          <div><small>累计筹码净迁移率</small><strong id="migrationRate">—</strong></div>
+          <div><small>累计筹码净迁移量</small><strong id="migrationVolume">—</strong></div>
+        </div>
+        <div class="migration-period">
+          <h3>7D</h3>
+          <div><small>累计筹码净迁移率</small><strong id="migration7dRate">—</strong></div>
+          <div><small>累计筹码净迁移量</small><strong id="migration7dVolume">—</strong></div>
+        </div>
+        <div class="migration-period">
+          <h3>30D</h3>
+          <div><small>累计筹码净迁移率</small><strong id="migration30dRate">—</strong></div>
+          <div><small>累计筹码净迁移量</small><strong id="migration30dVolume">—</strong></div>
+        </div>
+      </div>
+      <p id="migrationWarning" class="migration-warning" hidden></p>
+      <div id="migrationChartWrap">
+        <svg id="migrationChart" role="img" aria-label="每日筹码净迁移率"></svg>
+        <div id="migrationTooltip"></div>
+      </div>
+    </section>
+    <section id="depletionSection" aria-labelledby="depletionTitle">
+      <div class="depletion-heading">
+        <h2 id="depletionTitle">盈利/亏损筹码净流失占比 <span>| Profit/Loss Depletion Composition</span></h2>
+        <button class="info-button" type="button" aria-label="指标说明">i<span class="info-popover">该指标按日统计各成本区间的筹码净减少量，并根据当日 BTC 价格将其归入盈利侧、亏损侧或跨现价未分类区间。它反映成本分布的净流失构成，不等同于实际卖出、已实现盈亏或链上换手量。</span></button>
+      </div>
+      <div class="depletion-periods">
+        <div class="composition-period">
+          <h3>所选时间区间</h3>
+          <div class="composition-labels"><span>盈利 <b id="depletionProfit">—</b></span><span>亏损 <b id="depletionLoss">—</b></span></div>
+          <div class="composition-track" id="depletionTrack"><i id="depletionProfitBar"></i><i id="depletionLossBar"></i></div>
+        </div>
+        <div class="composition-period">
+          <h3>7D</h3>
+          <div class="composition-labels"><span>盈利 <b id="depletion7dProfit">—</b></span><span>亏损 <b id="depletion7dLoss">—</b></span></div>
+          <div class="composition-track" id="depletion7dTrack"><i id="depletion7dProfitBar"></i><i id="depletion7dLossBar"></i></div>
+        </div>
+        <div class="composition-period">
+          <h3>30D</h3>
+          <div class="composition-labels"><span>盈利 <b id="depletion30dProfit">—</b></span><span>亏损 <b id="depletion30dLoss">—</b></span></div>
+          <div class="composition-track" id="depletion30dTrack"><i id="depletion30dProfitBar"></i><i id="depletion30dLossBar"></i></div>
+        </div>
+      </div>
+      <p id="depletionWarning" class="depletion-warning" hidden></p>
+      <div class="depletion-chart-heading">
+        <h3 class="depletion-chart-title">盈利/亏损筹码净流失占比 [%] <span>Profit/Loss Depletion Composition [%]</span></h3>
+        <div class="depletion-legend"><span><i class="profit-key"></i>盈利侧</span><span><i class="loss-key"></i>亏损侧</span><span><i class="price-key"></i>BTC Price</span></div>
+      </div>
+      <div id="depletionChartWrap">
+        <svg id="depletionChart" role="img" aria-label="每日盈利和亏损成本区筹码净流失及 BTC 价格"></svg>
+        <div id="depletionTooltip"></div>
+      </div>
+    </section>
+  </main>
+  <script src="data/utxo.js"></script>
+  <script src="migration.js"></script>
+  <script src="depletion.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

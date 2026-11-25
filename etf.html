@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BTC ETF Analytics</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="etf.css">
+</head>
+<body>
+  <main class="etf-page">
+    <nav class="site-nav" aria-label="Analytics navigation"><a href="index.html">URPD Analytics</a><a class="active" href="etf.html">ETF Analytics</a></nav>
+    <header class="etf-header">
+      <div><h1>BTC ETF Analytics <span>| 比特币现货 ETF 分析</span></h1><p>Glassnode · U.S. Spot Bitcoin ETFs</p></div>
+      <div class="range-picker"><label>From<input id="etfStartDate" type="date"></label><span>—</span><label>To<input id="etfEndDate" type="date"></label></div>
+    </header>
+    <div class="data-meta"><span id="retrievedAt">数据获取时间 —</span><span>各模块独立对齐完整报告日</span></div>
+
+    <section class="etf-section" aria-labelledby="flowTitle">
+      <div class="section-heading"><div><h2 id="flowTitle">Overall ETF Market <span>| ETF 整体净流量</span></h2><p id="flowCutoff" class="cutoff">ETF Net Flow · 数据截至 —</p></div><p id="flowEffective" class="effective-date"></p></div>
+      <p id="flowWarning" class="module-warning" hidden></p>
+      <div class="kpi-grid">
+        <article><small>Selected-Period Net Flow</small><strong id="netFlowKpi">—</strong></article>
+        <article><small>Inflow / Outflow Days</small><strong id="flowDaysKpi">—</strong></article>
+        <article><small>End USD Balance Total</small><strong id="flowAssetsKpi">—</strong></article>
+      </div>
+      <div class="chart-title"><span>Daily Net Flow [USD]</span><span><i class="legend-positive"></i>Inflow <i class="legend-negative"></i>Outflow <i class="legend-line"></i>BTC Price</span></div>
+      <div class="svg-wrap flow-chart-wrap"><svg id="flowChart" role="img" aria-label="Daily ETF net flows and Bitcoin price"></svg><div id="flowTooltip" class="etf-tooltip"></div></div>
+    </section>
+
+    <section class="etf-section" aria-labelledby="holdingsTitle">
+      <div class="section-heading"><div><h2 id="holdingsTitle">BTC Holdings Changes <span>| 产品 BTC 持仓变化</span></h2><p id="holdingsCutoff" class="cutoff">BTC Holdings · 数据截至 —</p></div><p id="holdingsEffective" class="effective-date"></p></div>
+      <p id="holdingsWarning" class="module-warning" hidden></p>
+      <div class="svg-wrap ranking-wrap"><svg id="holdingsChart" role="img" aria-label="ETF Bitcoin holdings changes ranking"></svg><div id="holdingsTooltip" class="etf-tooltip"></div></div>
+      <div class="table-wrap"><table><thead><tr><th>ETF</th><th>Start Holdings</th><th>End Holdings</th><th><button data-holdings-sort="change">Change (BTC)</button></th><th><button data-holdings-sort="changePct">Change (%)</button></th></tr></thead><tbody id="holdingsTable"></tbody></table></div>
+    </section>
+
+    <section class="etf-section" aria-labelledby="shareTitle">
+      <div class="section-heading"><div><h2 id="shareTitle">USD Balance Market Share <span>| USD Balance 市占率</span></h2><p id="shareCutoff" class="cutoff">USD Balance Market Share · 数据截至 —</p></div><p id="shareEffective" class="effective-date"></p></div>
+      <p class="method-label">Glassnode USD Balance，并非官方 Net Assets / AUM。</p>
+      <p id="shareWarning" class="module-warning" hidden></p>
+      <div class="svg-wrap ranking-wrap"><svg id="shareChart" role="img" aria-label="ETF USD balance market share ranking"></svg><div id="shareTooltip" class="etf-tooltip"></div></div>
+      <div class="table-wrap"><table><thead><tr><th>ETF</th><th>Start Share</th><th>End Share</th><th>Change (pp)</th><th>End USD Balance</th></tr></thead><tbody id="shareTable"></tbody></table></div>
+    </section>
+
+    <section class="etf-section observations"><h2>Research Observations <span>| 自动研究观察</span></h2><p id="researchSummary">—</p></section>
+    <footer class="methodology"><b>Methodology</b><span>Flow 使用 Glassnode USD Net Flow；BTC Holdings 使用 native balances；市占率使用同步完整快照的 USD balances。区间比较采用所选范围内首个与最后一个完整同步快照。缺失值不补零，不混用不同估值日期。</span></footer>
+  </main>
+  <script src="etf-data.js"></script>
+  <script src="etf-core.js"></script>
+  <script src="etf-app.js"></script>
+</body>
+</html>

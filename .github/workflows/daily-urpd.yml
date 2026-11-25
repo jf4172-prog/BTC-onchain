@@ -106,7 +106,9 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add utxo.json utxo.js etf-data.json etf-data.js
             git commit -m "Update daily on-chain data"
-            git push
+            if ! git push; then
+              echo "::warning::Data commit push was skipped because main advanced concurrently; deployment will continue with the freshly fetched artifact."
+            fi
           fi
 
       - name: Configure GitHub Pages

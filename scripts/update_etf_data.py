@@ -8,8 +8,10 @@ import json
 import os
 import ssl
 import tempfile
+import time
 import urllib.parse
 import urllib.request
+from urllib.error import HTTPError
 from pathlib import Path
 
 
@@ -43,14 +45,24 @@ def ssl_context() -> ssl.SSLContext:
         return ssl.create_default_context()
 
 
-def fetch(metric: str, currency: str | None = None) -> list[dict]:
+def fetch(metric: str, currency: str | None = None, attempts: int = 4) -> list[dict]:
     params = {"a": "BTC", "i": "24h", "api_key": read_api_key()}
     if currency:
         params["c"] = currency
     url = f"{BASE}/{metric}?{urllib.parse.urlencode(params)}"
     request = urllib.request.Request(url, headers={"User-Agent": "btc-onchain-etf-archive/1.0"})
-    with urllib.request.urlopen(request, timeout=60, context=ssl_context()) as response:
-        rows = json.load(response)
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=60, context=ssl_context()) as response:
+                rows = json.load(response)
+            break
+        except HTTPError as error:
+            if error.code != 429 or attempt == attempts:
+                raise
+            retry_after = error.headers.get("Retry-After")
+            delay = int(retry_after) if retry_after and retry_after.isdigit() else 15 * attempt
+            print(f"Glassnode rate limit for {metric}; retrying in {delay}s", flush=True)
+            time.sleep(delay)
     if not isinstance(rows, list) or not rows:
         raise RuntimeError(f"Glassnode returned no rows for {metric}")
     return rows
@@ -110,7 +122,14 @@ def main() -> None:
     flow = normalize_scalar(fetch("institutions/us_spot_etf_flows_net", "usd"), "net_flow_usd")
     holdings = normalize_snapshots(fetch("institutions/us_spot_etf_balances_all", "native"))
     usd_balances = normalize_snapshots(fetch("institutions/us_spot_etf_balances_all", "usd"))
-    btc_price = normalize_scalar(fetch("market/price_usd_close"), "price_usd")
+    previous_prices = previous.get("datasets", {}).get("btc_price", [])
+    try:
+        btc_price = normalize_scalar(fetch("market/price_usd_close"), "price_usd")
+    except HTTPError as error:
+        # Price is only a chart overlay. Preserve the last valid series rather than
+        # blocking ETF data archival or Pages deployment on a secondary request.
+        print(f"BTC price update skipped after HTTP {error.code}; preserving existing series", flush=True)
+        btc_price = []
 
     payload = {
         "schema_version": 1,
@@ -120,7 +139,7 @@ def main() -> None:
             "net_flow": merge(previous.get("datasets", {}).get("net_flow", []), flow),
             "btc_holdings": merge(previous.get("datasets", {}).get("btc_holdings", []), holdings),
             "usd_balances": merge(previous.get("datasets", {}).get("usd_balances", []), usd_balances),
-            "btc_price": merge(previous.get("datasets", {}).get("btc_price", []), btc_price),
+            "btc_price": merge(previous_prices, btc_price),
         },
         "limitations": {
             "history_window": "API backfill is limited by the account plan; history accumulates through daily snapshots.",

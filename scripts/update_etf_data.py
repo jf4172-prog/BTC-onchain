@@ -20,6 +20,7 @@ OUTPUT = ROOT / "etf-data.json"
 OUTPUT_JS = ROOT / "etf-data.js"
 ENV_FILE = ROOT.parents[1] / ".env"
 BASE = "https://api.glassnode.com/v1/metrics"
+REQUEST_SPACING_SECONDS = 20
 
 
 def read_api_key() -> str:
@@ -120,8 +121,11 @@ def write_atomic(path: Path, text: str) -> None:
 def main() -> None:
     previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
     flow = normalize_scalar(fetch("institutions/us_spot_etf_flows_net", "usd"), "net_flow_usd")
+    time.sleep(REQUEST_SPACING_SECONDS)
     holdings = normalize_snapshots(fetch("institutions/us_spot_etf_balances_all", "native"))
+    time.sleep(REQUEST_SPACING_SECONDS)
     usd_balances = normalize_snapshots(fetch("institutions/us_spot_etf_balances_all", "usd"))
+    time.sleep(REQUEST_SPACING_SECONDS)
     previous_prices = previous.get("datasets", {}).get("btc_price", [])
     try:
         btc_price = normalize_scalar(fetch("market/price_usd_close"), "price_usd")

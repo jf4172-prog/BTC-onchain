@@ -92,7 +92,10 @@ jobs:
       - name: Fetch and merge ETF history
         env:
           GLASSNODE_API_KEY: ${{ secrets.GLASSNODE_API_KEY }}
-        run: python scripts/update_etf_data.py
+        run: |
+          # Keep the ETF request burst separate from the preceding URPD call.
+          sleep 20
+          python scripts/update_etf_data.py
 
       - name: Commit updated data
         run: |
